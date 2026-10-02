@@ -32,17 +32,19 @@ export default function StatusPage() {
     setCurrentUserId(savedUserId);
 
     const loadData = async () => {
-      const [{ data: userRows, error: userError }, { data: statusRows, error: statusError }] =
-        await Promise.all([
-          supabase
-            .from("users")
-            .select("id, nickname")
-            .order("nickname", { ascending: true }),
+      const [
+        { data: userRows, error: userError },
+        { data: statusRows, error: statusError },
+      ] = await Promise.all([
+        supabase
+          .from("users")
+          .select("id, nickname")
+          .order("nickname", { ascending: true }),
 
-          supabase
-            .from("work_status")
-            .select("user_id, is_working"),
-        ]);
+        supabase
+          .from("work_status")
+          .select("user_id, is_working"),
+      ]);
 
       if (userError) {
         console.error("사용자 목록 불러오기 실패:", userError);
@@ -118,6 +120,10 @@ export default function StatusPage() {
     );
   };
 
+  const currentUser = users.find(
+    (user) => user.id === currentUserId
+  );
+
   const toggleWorking = async () => {
     if (!currentUserId || updating) return;
 
@@ -166,6 +172,19 @@ export default function StatusPage() {
     );
   }
 
+  const otherUsers = users
+    .filter((user) => user.id !== currentUserId)
+    .sort((a, b) => {
+      const aWorking = isWorking(a.id);
+      const bWorking = isWorking(b.id);
+
+      if (aWorking !== bWorking) {
+        return aWorking ? -1 : 1;
+      }
+
+      return a.nickname.localeCompare(b.nickname, "ko");
+    });
+
   return (
     <main className="min-h-screen bg-[#F8F7F4] px-4 py-8 text-[#484558]">
       <div className="mx-auto w-full max-w-2xl">
@@ -185,62 +204,79 @@ export default function StatusPage() {
           <div className="w-16" />
         </div>
 
-        {/* 설명 */}
-        <section className="mb-5 rounded-2xl bg-white p-5 shadow-sm">
-          <p className="text-sm leading-6 text-[#77738B]">
-            현재 작업 중인 사람을 확인할 수 있어요.
-          </p>
-        </section>
+        {loading ? (
+          <div className="rounded-2xl bg-white py-10 text-center text-sm text-[#77738B] shadow-sm">
+            불러오는 중...
+          </div>
+        ) : (
+          <>
+            {/* 내 작업 상태 */}
+            <section className="mb-5 rounded-2xl bg-white p-5 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-base font-bold">
+                    {currentUser?.nickname}
+                  </span>
 
-        {/* 사용자 목록 */}
-        <section className="rounded-2xl bg-white p-5 shadow-sm">
-          {loading ? (
-            <div className="py-8 text-center text-sm text-[#77738B]">
-              불러오는 중...
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {users.map((user) => {
-                const working = isWorking(user.id);
-                const isMe = user.id === currentUserId;
+                  {isWorking(currentUserId) && (
+                    <span className="rounded-full bg-[#E8E6F2] px-2.5 py-1 text-xs font-bold text-[#7773B5]">
+                      작업중
+                    </span>
+                  )}
+                </div>
 
-                return (
-                  <div
-                    key={user.id}
-                    className="flex items-center justify-between rounded-2xl bg-[#F8F7F4] px-4 py-4"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold">
-                        {user.nickname}
-                      </span>
+                <button
+                  type="button"
+                  onClick={toggleWorking}
+                  disabled={updating}
+                  className={`rounded-xl px-4 py-2 text-sm font-bold text-white transition active:scale-95 ${
+                    isWorking(currentUserId)
+                      ? "bg-[#D98282]"
+                      : "bg-[#9F9BCF]"
+                  }`}
+                >
+                  {isWorking(currentUserId)
+                    ? "종료"
+                    : "작업중"}
+                </button>
+              </div>
+            </section>
 
-                      {working && (
-                        <span className="rounded-full bg-[#E8E6F2] px-2.5 py-1 text-xs font-bold text-[#7773B5]">
-                          작업중
+            {/* 다른 사용자 */}
+            <section className="rounded-2xl bg-white p-5 shadow-sm">
+              <div className="space-y-3">
+                {otherUsers.map((user) => {
+                  const working = isWorking(user.id);
+
+                  return (
+                    <div
+                      key={user.id}
+                      className="flex items-center justify-between rounded-2xl bg-[#F8F7F4] px-4 py-4"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`font-bold ${
+                            working
+                              ? "text-[#484558]"
+                              : "text-[#AAA7B5]"
+                          }`}
+                        >
+                          {user.nickname}
                         </span>
-                      )}
-                    </div>
 
-                    {isMe && (
-                      <button
-                        type="button"
-                        onClick={toggleWorking}
-                        disabled={updating}
-                        className={`rounded-xl px-4 py-2 text-sm font-bold text-white transition active:scale-95 ${
-                          working
-                            ? "bg-[#D98282]"
-                            : "bg-[#9F9BCF]"
-                        }`}
-                      >
-                        {working ? "종료" : "작업중"}
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </section>
+                        {working && (
+                          <span className="rounded-full bg-[#E8E6F2] px-2.5 py-1 text-xs font-bold text-[#7773B5]">
+                            작업중
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          </>
+        )}
       </div>
     </main>
   );
