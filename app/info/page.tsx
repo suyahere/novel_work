@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import WorkStatusPopup from "@/components/WorkStatusPopup";
 
 type InfoPost = {
   id: number;
@@ -132,6 +133,7 @@ export default function InfoPage() {
 
   return (
     <main className="min-h-screen bg-[#F8F7F4] px-4 py-8 text-[#484558]">
+        <WorkStatusPopup />
       <div className="mx-auto w-full max-w-2xl">
         <div className="mb-6 flex items-center justify-between">
           <Link

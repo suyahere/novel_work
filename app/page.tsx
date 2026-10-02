@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import WorkStatusPopup from "@/components/WorkStatusPopup";
 
 type WorkRecord = {
   id: number;
@@ -528,6 +529,7 @@ export default function Home() {
   if (!isLoggedIn) {
     return (
       <main className="min-h-screen bg-[#F8F7F4] px-5 py-8 text-[#484558]">
+        <WorkStatusPopup />
         <div className="mx-auto flex min-h-[calc(100vh-64px)] max-w-sm items-center justify-center">
           <div className="mx-auto w-full max-w-sm md:max-w-md">
 
@@ -599,6 +601,7 @@ export default function Home() {
   if (showAllRecords) {
     return (
       <main className="min-h-screen bg-[#F8F7F4] px-5 py-6 text-[#484558]">
+        <WorkStatusPopup />
         <div className="mx-auto w-full max-w-sm md:max-w-md">
 
           <div className="mb-7 flex items-center justify-between">
@@ -783,6 +786,7 @@ export default function Home() {
   // 메인 화면
   return (
     <main className="min-h-screen bg-[#F8F7F4] px-5 py-6 text-[#484558]">
+      <WorkStatusPopup />
       <div className="mx-auto w-full max-w-sm md:max-w-md">
 
         {/* 헤더 */}
