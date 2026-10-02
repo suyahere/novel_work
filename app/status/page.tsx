@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 
 type User = {
@@ -13,17 +14,20 @@ type WorkStatus = {
   is_working: boolean;
 };
 
-export default function WorkStatusPopup() {
+export default function StatusPage() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [statuses, setStatuses] = useState<WorkStatus[]>([]);
-  const [isOpen, setIsOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState(false);
 
   useEffect(() => {
     const savedUserId = localStorage.getItem("our-work-user-id");
 
-    if (!savedUserId) return;
+    if (!savedUserId) {
+      setLoading(false);
+      return;
+    }
 
     setCurrentUserId(savedUserId);
 
@@ -42,16 +46,19 @@ export default function WorkStatusPopup() {
 
       if (userError) {
         console.error("사용자 목록 불러오기 실패:", userError);
+        setLoading(false);
         return;
       }
 
       if (statusError) {
         console.error("작업 상태 불러오기 실패:", statusError);
+        setLoading(false);
         return;
       }
 
       setUsers(userRows ?? []);
       setStatuses(statusRows ?? []);
+      setLoading(false);
     };
 
     loadData();
@@ -67,12 +74,14 @@ export default function WorkStatusPopup() {
         },
         (payload) => {
           if (payload.eventType === "DELETE") {
+            const deletedStatus = payload.old as WorkStatus;
+
             setStatuses((prev) =>
               prev.filter(
-                (status) =>
-                  status.user_id !== (payload.old as WorkStatus).user_id
+                (status) => status.user_id !== deletedStatus.user_id
               )
             );
+
             return;
           }
 
@@ -102,27 +111,27 @@ export default function WorkStatusPopup() {
     };
   }, []);
 
-  const getWorkingStatus = (userId: string) => {
+  const isWorking = (userId: string) => {
     return (
-      statuses.find((status) => status.user_id === userId)?.is_working ??
-      false
+      statuses.find((status) => status.user_id === userId)
+        ?.is_working ?? false
     );
   };
 
   const toggleWorking = async () => {
-    if (!currentUserId || loading) return;
+    if (!currentUserId || updating) return;
 
-    setLoading(true);
+    const currentWorking = isWorking(currentUserId);
+    const nextWorking = !currentWorking;
 
-    const currentStatus = getWorkingStatus(currentUserId);
-    const nextStatus = !currentStatus;
+    setUpdating(true);
 
     const { error } = await supabase
       .from("work_status")
       .upsert(
         {
           user_id: currentUserId,
-          is_working: nextStatus,
+          is_working: nextWorking,
           updated_at: new Date().toISOString(),
         },
         {
@@ -135,72 +144,78 @@ export default function WorkStatusPopup() {
       alert("작업 상태 변경 중 오류가 발생했습니다.");
     }
 
-    setLoading(false);
+    setUpdating(false);
   };
 
   if (!currentUserId) {
-    return null;
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#F8F7F4] px-4 text-[#484558]">
+        <div className="text-center">
+          <p className="mb-4 text-sm">
+            로그인이 필요합니다.
+          </p>
+
+          <Link
+            href="/"
+            className="text-sm font-bold text-[#7773B5] hover:underline"
+          >
+            ← OUR WORK로 돌아가기
+          </Link>
+        </div>
+      </main>
+    );
   }
 
-  const workingUsers = users.filter((user) =>
-    getWorkingStatus(user.id)
-  );
-
   return (
-    <>
-      <button
-        type="button"
-        onClick={() => setIsOpen(true)}
-        className="fixed bottom-5 right-5 z-40 rounded-full bg-[#9F9BCF] px-5 py-3 text-sm font-bold text-white shadow-lg transition active:scale-95"
-      >
-        📝 작업 현황
-        {workingUsers.length > 0 && (
-          <span className="ml-2 rounded-full bg-white px-2 py-0.5 text-xs text-[#9F9BCF]">
-            {workingUsers.length}
-          </span>
-        )}
-      </button>
-
-      {isOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4"
-          onClick={() => setIsOpen(false)}
-        >
-          <div
-            className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-xl"
-            onClick={(e) => e.stopPropagation()}
+    <main className="min-h-screen bg-[#F8F7F4] px-4 py-8 text-[#484558]">
+      <div className="mx-auto w-full max-w-2xl">
+        {/* 상단 */}
+        <div className="mb-6 flex items-center justify-between">
+          <Link
+            href="/"
+            className="text-sm text-[#77738B] hover:underline"
           >
-            <div className="mb-5 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-[#484558]">
-                작업 현황
-              </h2>
+            ← OUR WORK
+          </Link>
 
-              <button
-                type="button"
-                onClick={() => setIsOpen(false)}
-                className="text-xl text-[#AAA7B5]"
-              >
-                ×
-              </button>
+          <h1 className="text-xl font-bold">
+            작업 현황
+          </h1>
+
+          <div className="w-16" />
+        </div>
+
+        {/* 설명 */}
+        <section className="mb-5 rounded-2xl bg-white p-5 shadow-sm">
+          <p className="text-sm leading-6 text-[#77738B]">
+            현재 작업 중인 사람을 확인할 수 있어요.
+          </p>
+        </section>
+
+        {/* 사용자 목록 */}
+        <section className="rounded-2xl bg-white p-5 shadow-sm">
+          {loading ? (
+            <div className="py-8 text-center text-sm text-[#77738B]">
+              불러오는 중...
             </div>
-
+          ) : (
             <div className="space-y-3">
               {users.map((user) => {
-                const isWorking = getWorkingStatus(user.id);
+                const working = isWorking(user.id);
                 const isMe = user.id === currentUserId;
 
                 return (
                   <div
                     key={user.id}
-                    className="flex items-center justify-between rounded-2xl bg-[#F8F7F4] px-4 py-3"
+                    className="flex items-center justify-between rounded-2xl bg-[#F8F7F4] px-4 py-4"
                   >
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-[#484558]">
+                      <span className="font-bold">
                         {user.nickname}
                       </span>
 
-                      {isWorking && (
-                        <span className="rounded-full bg-[#E8E6F2] px-2 py-1 text-xs font-bold text-[#7773B5]">
+                      {working && (
+                        <span className="rounded-full bg-[#E8E6F2] px-2.5 py-1 text-xs font-bold text-[#7773B5]">
                           작업중
                         </span>
                       )}
@@ -210,23 +225,23 @@ export default function WorkStatusPopup() {
                       <button
                         type="button"
                         onClick={toggleWorking}
-                        disabled={loading}
-                        className={`rounded-xl px-3 py-2 text-xs font-bold transition active:scale-95 ${
-                          isWorking
-                            ? "bg-[#D98282] text-white"
-                            : "bg-[#9F9BCF] text-white"
+                        disabled={updating}
+                        className={`rounded-xl px-4 py-2 text-sm font-bold text-white transition active:scale-95 ${
+                          working
+                            ? "bg-[#D98282]"
+                            : "bg-[#9F9BCF]"
                         }`}
                       >
-                        {isWorking ? "종료" : "작업중"}
+                        {working ? "종료" : "작업중"}
                       </button>
                     )}
                   </div>
                 );
               })}
             </div>
-          </div>
-        </div>
-      )}
-    </>
+          )}
+        </section>
+      </div>
+    </main>
   );
 }

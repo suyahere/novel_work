@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import WorkStatusPopup from "@/components/WorkStatusPopup";
 
 type WorkRecord = {
   id: number;
@@ -529,7 +528,6 @@ export default function Home() {
   if (!isLoggedIn) {
     return (
       <main className="min-h-screen bg-[#F8F7F4] px-5 py-8 text-[#484558]">
-        <WorkStatusPopup />
         <div className="mx-auto flex min-h-[calc(100vh-64px)] max-w-sm items-center justify-center">
           <div className="mx-auto w-full max-w-sm md:max-w-md">
 
@@ -601,7 +599,6 @@ export default function Home() {
   if (showAllRecords) {
     return (
       <main className="min-h-screen bg-[#F8F7F4] px-5 py-6 text-[#484558]">
-        <WorkStatusPopup />
         <div className="mx-auto w-full max-w-sm md:max-w-md">
 
           <div className="mb-7 flex items-center justify-between">
@@ -786,7 +783,6 @@ export default function Home() {
   // 메인 화면
   return (
     <main className="min-h-screen bg-[#F8F7F4] px-5 py-6 text-[#484558]">
-      <WorkStatusPopup />
       <div className="mx-auto w-full max-w-sm md:max-w-md">
 
         {/* 헤더 */}
@@ -999,20 +995,28 @@ export default function Home() {
           </div>
         </section>
 
-        {/* 전체 기록 / 정보 */}
-        <div className="mb-6 mt-7 flex gap-3">
-          <button
-            onClick={() => setShowAllRecords(true)}
-            className="flex-1 rounded-2xl border-2 border-[#D1CFE6] bg-white py-4 text-sm font-bold text-[#484558] transition active:scale-[0.98]"
-          >
-            👥 전체 기록 보기
-          </button>
+        {/* 전체 기록 */}
+        <button
+          onClick={() => setShowAllRecords(true)}
+          className="mb-3 mt-7 flex w-full items-center justify-center rounded-2xl border-2 border-[#D1CFE6] bg-white py-4 text-sm font-bold text-[#484558] transition active:scale-[0.98]"
+        >
+          👥 전체 기록 보기
+        </button>
 
+        {/* 정보 / 작업 현황 */}
+        <div className="mb-6 flex gap-3">
           <a
             href="/info"
             className="flex-1 rounded-2xl border-2 border-[#D1CFE6] bg-white py-4 text-center text-sm font-bold text-[#484558] transition active:scale-[0.98]"
           >
             📌 정보
+          </a>
+
+          <a
+            href="/status"
+            className="flex-1 rounded-2xl border-2 border-[#D1CFE6] bg-white py-4 text-center text-sm font-bold text-[#484558] transition active:scale-[0.98]"
+          >
+            📝 작업 현황
           </a>
         </div>
       </div>
