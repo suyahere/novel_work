@@ -100,27 +100,35 @@ export default function InfoPage() {
   };
 
   const renderContent = (text: string) => {
-    const urlRegex = /(https?:\/\/[^\s]+)/g;
-    const parts = text.split(urlRegex);
+  const urlRegex =
+    /((?:https?:\/\/)?(?:www\.)?[a-zA-Z0-9-]+\.[a-zA-Z]{2,}(?:\/[^\s]*)?)/g;
 
-    return parts.map((part, index) => {
-      if (/^https?:\/\/[^\s]+$/.test(part)) {
-        return (
-          <a
-            key={index}
-            href={part}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="break-all text-[#7773B5] underline"
-          >
-            {part}
-          </a>
-        );
-      }
+  const parts = text.split(urlRegex);
 
-      return <span key={index}>{part}</span>;
-    });
-  };
+  return parts.map((part, index) => {
+    const isUrl = /^[a-zA-Z0-9-]+\.[a-zA-Z]{2,}(?:\/[^\s]*)?$/.test(part);
+
+    if (isUrl) {
+      const href = part.startsWith("http://") || part.startsWith("https://")
+        ? part
+        : `https://${part}`;
+
+      return (
+        <a
+          key={index}
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="break-all text-[#7773B5] underline hover:opacity-70"
+        >
+          {part}
+        </a>
+      );
+    }
+
+    return <span key={index}>{part}</span>;
+  });
+};
 
   return (
     <main className="min-h-screen bg-[#F8F7F4] px-4 py-8 text-[#484558]">
