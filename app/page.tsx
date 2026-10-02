@@ -1004,6 +1004,9 @@ export default function Home() {
         >
           👥 전체 기록 보기
         </button>
+        <a href="/info" className="rounded-xl bg-[#E8E6F2] px-4 py-2 text-sm font-bold text-[#484558]">
+          정보
+        </a>        
       </div>
     </main>
   );
