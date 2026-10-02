@@ -995,18 +995,22 @@ export default function Home() {
           </div>
         </section>
 
-        {/* 전체 기록 */}
-        <button
-          onClick={() =>
-            setShowAllRecords(true)
-          }
-          className="mb-6 mt-7 w-full rounded-2xl border-2 border-[#D1CFE6] bg-white py-4 text-sm font-bold text-[#484558] transition active:scale-[0.98]"
-        >
-          👥 전체 기록 보기
-        </button>
-        <a href="/info" className="rounded-xl bg-[#E8E6F2] px-4 py-2 text-sm font-bold text-[#484558]">
-          정보
-        </a>        
+        {/* 전체 기록 / 정보 */}
+        <div className="mb-6 mt-7 flex gap-3">
+          <button
+            onClick={() => setShowAllRecords(true)}
+            className="flex-1 rounded-2xl border-2 border-[#D1CFE6] bg-white py-4 text-sm font-bold text-[#484558] transition active:scale-[0.98]"
+          >
+            👥 전체 기록 보기
+          </button>
+
+          <a
+            href="/info"
+            className="flex-1 rounded-2xl border-2 border-[#D1CFE6] bg-white py-4 text-center text-sm font-bold text-[#484558] transition active:scale-[0.98]"
+          >
+            📌 정보
+          </a>
+        </div>
       </div>
     </main>
   );
