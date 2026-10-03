@@ -8,6 +8,7 @@ type WorkRecord = {
   date: string;
   amount: number;
   is_planning: boolean;
+  year_month: string;
 };
 
 export default function Home() {
@@ -103,7 +104,7 @@ export default function Home() {
 
       const { data, error } = await supabase
         .from("work_records")
-        .select("id, date, amount, is_planning")
+        .select("id, date, amount, is_planning, year_month")
         .eq("user_id", userId)
         .eq("year_month", currentMonthKey)
         .order("date", { ascending: false });
@@ -155,10 +156,19 @@ export default function Home() {
         return;
       }
 
+      const previousMonthDate = new Date(
+        currentYear,
+        currentMonth - 2,
+        1
+      );
+      const previousMonthKey = `${previousMonthDate.getFullYear()}-${String(
+        previousMonthDate.getMonth() + 1
+      ).padStart(2, "0")}`;
+
       const { data: recordRows, error: recordError } = await supabase
         .from("work_records")
-        .select("id, user_id, date, amount, is_planning")
-        .eq("year_month", currentMonthKey);
+        .select("id, user_id, date, amount, is_planning, year_month")
+        .in("year_month", [previousMonthKey, currentMonthKey]);
 
       if (recordError) {
         console.error("전체 기록 불러오기 실패:", recordError);
@@ -183,6 +193,7 @@ export default function Home() {
           date: record.date,
           amount: record.amount,
           is_planning: record.is_planning,
+          year_month: record.year_month,
         });
       }
 
@@ -231,7 +242,7 @@ export default function Home() {
 
     const { data, error } = await supabase
       .from("work_records")
-      .select("id, date, amount, is_planning")
+      .select("id, date, amount, is_planning, year_month")
       .eq("user_id", userId)
       .eq("year_month", monthKey)
       .order("date", { ascending: false });
@@ -355,7 +366,7 @@ export default function Home() {
         amount,
         is_planning: todayIsPlanning,
       })
-      .select("id, date, amount, is_planning")
+      .select("id, date, amount, is_planning, year_month")
       .single();
 
     if (error) {
@@ -415,7 +426,7 @@ export default function Home() {
         is_planning: editingIsPlanning,
       })
       .eq("id", id)
-      .select("id, date, amount, is_planning")
+      .select("id, date, amount, is_planning, year_month")
       .single();
 
     if (error) {
@@ -461,9 +472,40 @@ export default function Home() {
     user: string,
     monthKey: string
   ): WorkRecord[] => {
-    if (monthKey !== currentMonthKey) return [];
+    return (allUserRecords[user] ?? []).filter(
+      (record) => record.year_month === monthKey
+    );
+  };
 
-    return allUserRecords[user] ?? [];
+  // 오늘을 포함해 최근 7일 이내에 기획으로 기록한 적이 있는지 확인
+  const hasPlanningWithin7Days = (user: string) => {
+    const userRecords = allUserRecords[user] ?? [];
+    const today = new Date(
+      currentYear,
+      currentMonth - 1,
+      currentDay
+    );
+    const sevenDaysAgo = new Date(today);
+    sevenDaysAgo.setDate(today.getDate() - 6);
+
+    return userRecords.some((record) => {
+      if (!record.is_planning) return false;
+
+      const [year, month] = record.year_month
+        .split("-")
+        .map(Number);
+      const dayMatch = record.date.match(/(\d+)월 (\d+)일/);
+
+      if (!dayMatch) return false;
+
+      const recordDate = new Date(
+        year,
+        month - 1,
+        Number(dayMatch[2])
+      );
+
+      return recordDate >= sevenDaysAgo && recordDate <= today;
+    });
   };
 
   // 오늘 작업량
@@ -651,6 +693,7 @@ export default function Home() {
                   name: user,
                   amount: getTodayAmount(user),
                   hasRecord: hasTodayRecord(user),
+                  isPlanning: hasPlanningWithin7Days(user),
                 }))
                 .sort((a, b) => {
                   // 기록한 사람을 먼저
@@ -701,6 +744,7 @@ export default function Home() {
 
                     {person.hasRecord && (
                       <span className="font-bold">
+                        {person.isPlanning && "기획중 "}
                         {person.amount}자
                       </span>
                     )}
@@ -733,6 +777,7 @@ export default function Home() {
                     user,
                     currentMonthKey
                   ),
+                  isPlanning: hasPlanningWithin7Days(user),
                 }))
                 .sort((a, b) => {
                   // 기록한 사람을 먼저
@@ -783,6 +828,7 @@ export default function Home() {
 
                     {person.hasRecord && (
                       <span className="font-bold">
+                        {person.isPlanning && "기획중 "}
                         {person.amount}자
                       </span>
                     )}
