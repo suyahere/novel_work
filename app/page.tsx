@@ -7,6 +7,7 @@ type WorkRecord = {
   id: number;
   date: string;
   amount: number;
+  is_planning: boolean;
 };
 
 export default function Home() {
@@ -29,6 +30,7 @@ export default function Home() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   const [todayAmount, setTodayAmount] = useState("");
+  const [todayIsPlanning, setTodayIsPlanning] = useState(false);
 
   const hasTodayRecord = (user: string) => {
     const userRecords = getUserRecords(
@@ -54,6 +56,7 @@ export default function Home() {
 
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editingAmount, setEditingAmount] = useState("");
+  const [editingIsPlanning, setEditingIsPlanning] = useState(false);
 
   const [showAllRecords, setShowAllRecords] = useState(false);
 
@@ -79,15 +82,15 @@ export default function Home() {
 
   // 월 키를 화면에 표시할 이름으로 변환
   const getMonthLabel = (monthKey: string) => {
-  const [year, month] = monthKey.split("-");
+    const [year, month] = monthKey.split("-");
 
-  return `${year}년 ${Number(month)}월`;
+    return `${year}년 ${Number(month)}월`;
   };
 
   const getMonthTabLabel = (monthKey: string) => {
-  const [year, month] = monthKey.split("-");
+    const [year, month] = monthKey.split("-");
 
-  return `${year.slice(2)}-${month}`;
+    return `${year.slice(2)}-${month}`;
   };
 
    // 로그인한 사용자의 월 목록과 현재 달 기록 불러오기
@@ -100,7 +103,7 @@ export default function Home() {
 
       const { data, error } = await supabase
         .from("work_records")
-        .select("id, date, amount")
+        .select("id, date, amount, is_planning")
         .eq("user_id", userId)
         .eq("year_month", currentMonthKey)
         .order("date", { ascending: false });
@@ -154,7 +157,7 @@ export default function Home() {
 
       const { data: recordRows, error: recordError } = await supabase
         .from("work_records")
-        .select("id, user_id, date, amount")
+        .select("id, user_id, date, amount, is_planning")
         .eq("year_month", currentMonthKey);
 
       if (recordError) {
@@ -179,6 +182,7 @@ export default function Home() {
           id: record.id,
           date: record.date,
           amount: record.amount,
+          is_planning: record.is_planning,
         });
       }
 
@@ -222,11 +226,12 @@ export default function Home() {
     setSelectedMonth(monthKey);
     setEditingId(null);
     setEditingAmount("");
+    setEditingIsPlanning(false);
     setRecordsLoaded(false);
 
     const { data, error } = await supabase
       .from("work_records")
-      .select("id, date, amount")
+      .select("id, date, amount, is_planning")
       .eq("user_id", userId)
       .eq("year_month", monthKey)
       .order("date", { ascending: false });
@@ -348,8 +353,9 @@ export default function Home() {
         year_month: currentMonthKey,
         date: todayString,
         amount,
+        is_planning: todayIsPlanning,
       })
-      .select("id, date, amount")
+      .select("id, date, amount, is_planning")
       .single();
 
     if (error) {
@@ -377,6 +383,7 @@ export default function Home() {
     }
 
     setTodayAmount("");
+    setTodayIsPlanning(false);
 
     alert("오늘의 작업량이 기록되었습니다.");
   };
@@ -385,6 +392,7 @@ export default function Home() {
   const startEditing = (record: WorkRecord) => {
     setEditingId(record.id);
     setEditingAmount(String(record.amount));
+    setEditingIsPlanning(record.is_planning);
   };
 
   // 수정 저장
@@ -404,9 +412,10 @@ export default function Home() {
       .from("work_records")
       .update({
         amount,
+        is_planning: editingIsPlanning,
       })
       .eq("id", id)
-      .select("id, date, amount")
+      .select("id, date, amount, is_planning")
       .single();
 
     if (error) {
@@ -425,6 +434,7 @@ export default function Home() {
 
     setEditingId(null);
     setEditingAmount("");
+    setEditingIsPlanning(false);
   };
 
   // 로그아웃
@@ -433,6 +443,11 @@ export default function Home() {
     setRecordsLoaded(false);
     setRecords([]);
     setNickname("");
+    setTodayAmount("");
+    setTodayIsPlanning(false);
+    setEditingIsPlanning(false);
+    setEditingId(null);
+    setEditingAmount("");
     setPin("");
     setUserId(null);
     localStorage.removeItem("our-work-user-id");
@@ -835,6 +850,16 @@ export default function Home() {
             </span>
           </div>
 
+          <label className="mt-3 flex items-center gap-2 text-sm font-bold text-[#484558]">
+            <input
+              type="checkbox"
+              checked={todayIsPlanning}
+              onChange={(e) => setTodayIsPlanning(e.target.checked)}
+              className="h-4 w-4 accent-[#9F9BCF]"
+            />
+            기획
+          </label>
+
           <button
             onClick={handleRecord}
             className="mt-4 w-full rounded-2xl bg-[#9F9BCF] py-4 text-base font-bold text-white shadow-sm transition active:scale-[0.98]"
@@ -955,6 +980,16 @@ export default function Home() {
                           </span>
                         </div>
 
+                        <label className="flex shrink-0 items-center gap-1.5 text-xs font-bold">
+                          <input
+                            type="checkbox"
+                            checked={editingIsPlanning}
+                            onChange={(e) => setEditingIsPlanning(e.target.checked)}
+                            className="h-4 w-4 accent-[#9F9BCF]"
+                          />
+                          기획
+                        </label>
+
                         <button
                           onClick={() =>
                             saveEdit(record.id)
@@ -977,9 +1012,9 @@ export default function Home() {
                               startEditing(record)
                             }
                             className="w-20 text-center font-bold"
-                            aria-label={`${record.amount}자 수정`}
+                            aria-label={`${record.is_planning ? "기획 " : ""}${record.amount}자 수정`}
                           >
-                            {record.amount}자
+                            {record.is_planning && "기획 "}{record.amount}자
                           </button>
                         ) : (
                           <span className="w-20 text-center font-bold text-[#D98282]">
